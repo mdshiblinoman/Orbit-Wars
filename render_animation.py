@@ -35,6 +35,10 @@ def _get_ship_speed() -> float:
     return 6.0
 
 
+def _get_angular_velocity() -> float:
+    return float(getattr(app, 'DEFAULT_OBS', {}).get('angular_velocity', 0.03))
+
+
 @dataclass
 class Planet:
     id: int
@@ -68,7 +72,22 @@ def build_planets(obs: Dict[str, Any]) -> List[Planet]:
     plist: List[Planet] = []
     for p in obs.get("planets", []):
         pid, owner, x, y, r, ships, prod = p
-        plist.append(Planet(int(pid), int(owner), float(x), float(y), float(r), int(ships), int(prod)))
+        pl = Planet(int(pid), int(owner), float(x), float(y), float(r), int(ships), int(prod))
+        # determine orbital parameters relative to center (50,50)
+        cx, cy = 50.0, 50.0
+        dx = pl.x - cx
+        dy = pl.y - cy
+        radius_from_center = math.hypot(dx, dy)
+        # orbit if inside the playable ring (heuristic from app.py)
+        if radius_from_center + pl.radius < 50.0:
+            pl.orbiting = True
+            pl.orbit_radius = radius_from_center
+            pl.angle = math.atan2(dy, dx)
+        else:
+            pl.orbiting = False
+            pl.orbit_radius = 0.0
+            pl.angle = 0.0
+        plist.append(pl)
     return plist
 
 
@@ -151,6 +170,14 @@ def simulate_and_render(duration_turns: int = 60, fps: int = 20, frames_per_turn
             ax.set_xlim(0, 100)
             ax.set_ylim(0, 100)
             ax.set_aspect("equal")
+            # advance orbital positions for orbiting planets
+            ang_vel = _get_angular_velocity()
+            cx, cy = 50.0, 50.0
+            for p in planets:
+                if p.orbiting:
+                    p.angle += ang_vel / frames_per_turn
+                    p.x = cx + p.orbit_radius * math.cos(p.angle)
+                    p.y = cy + p.orbit_radius * math.sin(p.angle)
             # draw sun
             sun = patches.Circle((50, 50), radius=10.0, color="#ffddaa")
             ax.add_patch(sun)

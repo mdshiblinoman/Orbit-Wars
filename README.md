@@ -4,6 +4,7 @@ This workspace now contains:
 
 - A simple, legal baseline bot in `agent.py`.
 - A Streamlit website app in `app.py` that presents the game guide/specs and runs your bot against custom observation JSON.
+- Two standalone tabular training scripts for the leaderboard CSV: `ml.py` for classical ML and `dl.py` for a small neural network.
 
 ## What it does
 
@@ -52,3 +53,21 @@ Inside the app:
 - Route around the sun with two-hop launches.
 - Estimate incoming enemy fleets and reserve defenders.
 - Coordinate multi-planet attacks on high-production targets.
+
+## Train on the CSV
+
+The leaderboard CSV in this workspace is treated as a small tabular regression dataset by default, with `Score` as the target and `Rank`/`TeamId` dropped from features.
+
+Run the classical ML script:
+
+```bash
+python ml.py --csv orbit-wars-publicleaderboard-2026-05-05T15:36:33.csv
+```
+
+Run the neural-network script:
+
+```bash
+python dl.py --csv orbit-wars-publicleaderboard-2026-05-05T15:36:33.csv
+```
+
+If you want a different target column, pass `--target <column_name>`.
